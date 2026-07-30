@@ -69,7 +69,30 @@ export function seedAll() {
 
 // ─── 通知 ───
 let notificationsEnabled = false, notifiedTasks = {}, notifyTimers = [];
+let bgCheckInterval = null;
+
 export function loadNotified() { try { return JSON.parse(localStorage.getItem(NOTIFIED_KEY)||'{}'); } catch { return {}; } }
+
+function clearAllTimers() { notifyTimers.forEach(clearTimeout); notifyTimers = []; }
+
+function fireNotification(item) {
+  const k = item.start + '|' + item.title;
+  if (notifiedTasks[k]) return;
+  const title = item.icon + ' ' + item.title + ' — 该开始了';
+  const options = {
+    body: item.note || ('预计 ' + item.duration),
+    tag: k, requireInteraction: true, silent: false,
+  };
+  if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: title, options: options });
+  }
+  try {
+    const n = new Notification(title, options);
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch(e) {}
+  notifiedTasks[k] = true;
+  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notifiedTasks));
+}
 
 export function scheduleAllNotifications() {
   clearAllTimers();
@@ -89,41 +112,43 @@ export function scheduleAllNotifications() {
   });
 }
 
-function clearAllTimers() { notifyTimers.forEach(clearTimeout); notifyTimers = []; }
+export function startNotificationService() {
+  if (bgCheckInterval) return;
+  bgCheckInterval = setInterval(() => {
+    if (notificationsEnabled) { scheduleAllNotifications(); }
+  }, 60000);
+}
 
-function fireNotification(item) {
-  const k = item.start + '|' + item.title;
-  if (notifiedTasks[k]) return;
-  const n = new Notification(item.icon + ' ' + item.title + ' — 该开始了', {
-    body: item.note || ('预计 ' + item.duration),
-    tag: k, requireInteraction: true, silent: false,
-  });
-  n.onclick = () => { window.focus(); n.close(); };
-  notifiedTasks[k] = true;
-  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notifiedTasks));
+export function stopNotificationService() {
+  if (bgCheckInterval) { clearInterval(bgCheckInterval); bgCheckInterval = null; }
+  clearAllTimers();
 }
 
 export function toggleNotifications(on) {
   if (on) {
     if (!('Notification' in window)) { return false; }
     if (Notification.permission === 'denied') { return false; }
-    if (Notification.permission === 'granted') {
+    const tryEnable = () => {
       notificationsEnabled = true; notifiedTasks = loadNotified();
-      localStorage.setItem(NOTIFY_KEY, '1'); scheduleAllNotifications();
-      new Notification('✅ 通知已开启', { body: '到点会自动提醒你', silent: false });
+      localStorage.setItem(NOTIFY_KEY, '1');
+      scheduleAllNotifications();
+      startNotificationService();
+    };
+    if (Notification.permission === 'granted') {
+      tryEnable();
+      try { new Notification('✅ 通知已开启', { body: '到点会自动提醒你', silent: false }); } catch(e) {}
       return true;
     } else {
       Notification.requestPermission().then(perm => {
         if (perm === 'granted') {
-          notificationsEnabled = true; notifiedTasks = loadNotified();
-          localStorage.setItem(NOTIFY_KEY, '1'); scheduleAllNotifications();
-          new Notification('✅ 通知已开启', { body: '到点会自动提醒你', silent: false });
+          tryEnable();
+          try { new Notification('✅ 通知已开启', { body: '到点会自动提醒你', silent: false }); } catch(e) {}
         }
       });
       return true;
     }
   } else {
-    notificationsEnabled = false; clearAllTimers();
+    notificationsEnabled = false; stopNotificationService();
     localStorage.setItem(NOTIFY_KEY, '0');
     return false;
   }
@@ -133,7 +158,6 @@ export function getNotifyStatus() {
   return localStorage.getItem(NOTIFY_KEY)==='1' ? true : false;
 }
 
-// ─── 日期工具 ───
 export function fmtDate(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 export function parseDate(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
 export function isToday(d) { const t=new Date(); return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate(); }
@@ -149,6 +173,42 @@ export function timeToMinutes(t) { const [h,m]=t.split(':').map(Number); return 
 export function getStatus(nm,s,e,vt,isPast) { if(!vt && !isPast) return 'upcoming'; const a=timeToMinutes(s),b=timeToMinutes(e); if(nm>=b) return 'done'; if(nm>=a&&nm<b) return 'active'; return 'upcoming'; }
 export function fmtTime(d) { return d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}); }
 export function fmtTimeNoSec(d) { return d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false}); }
+
+
+export function scheduleTestNotification() {
+  var now = new Date();
+  var testTime = new Date(now.getTime() + 60000); // 1 minute from now
+  var h = String(testTime.getHours()).padStart(2, '0');
+  var m = String(testTime.getMinutes()).padStart(2, '0');
+  var timeStr = h + ':' + m;
+  var duration = '1分钟';
+  var store = loadStore();
+  var today = fmtDate(new Date());
+  if (!store[today]) store[today] = [];
+  // Remove old test tasks to avoid duplicates
+  store[today] = store[today].filter(function(i) { return i.title.indexOf('[测试]') === -1; });
+  store[today].push({
+    icon: '🧪',
+    title: '[测试] 通知测试',
+    start: timeStr,
+    end: timeStr,
+    duration: duration,
+    note: '这是一条测试通知，收到请确认 ✅'
+  });
+  saveStore(store);
+  // Clear notifiedTasks for this test item so it fires
+  var nt = loadNotified();
+  var keys = Object.keys(nt);
+  keys.forEach(function(k) {
+    if (k.indexOf('[测试]') !== -1) delete nt[k];
+  });
+  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(nt));
+  // Re-schedule
+  if (typeof notificationsEnabled !== 'undefined' && notificationsEnabled) {
+    scheduleAllNotifications();
+  }
+  return '测试任务已添加于 ' + timeStr + '，请等待约 1 分钟后查看通知';
+}
 
 // ─── 重置版本缓存（原版保留） ───
 (function(){

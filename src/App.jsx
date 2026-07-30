@@ -5,7 +5,7 @@ import TodayStatusCard from './components/TodayStatusCard';
 import Timeline from './components/Timeline';
 import ChoresSheet from './components/ChoresSheet';
 import {
-  seedAll, loadStore, loadChores, fmtDate, parseDate, isToday, fmtTime,
+  seedAll, loadStore, saveStore, loadChores, fmtDate, parseDate, isToday, fmtTime, startNotificationService, getNotifyStatus, scheduleTestNotification,
 } from './data/scheduleStore';
 
 export default function App() {
@@ -14,6 +14,38 @@ export default function App() {
   const [choresOpen, setChoresOpen] = React.useState(false);
 
   React.useEffect(() => { seedAll(); }, []);
+
+  // Expose test notification to window for the test button
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__scheduleTestNotification = scheduleTestNotification;
+    }
+    function handleScheduleChange(updatedItems) {
+    var store = loadStore();
+    store[dateKey] = updatedItems;
+    saveStore(store);
+  }
+
+  return () => { if (typeof window !== 'undefined') delete window.__scheduleTestNotification; };
+  }, []);
+
+  // Register Service Worker for background notifications
+  React.useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/my-schedule/sw.js').then(reg => {
+        console.log('SW registered:', reg.scope);
+      }).catch(err => {
+        console.warn('SW registration failed:', err);
+      });
+    }
+  }, []);
+
+  // Start the background notification checker (runs every 60s)
+  React.useEffect(() => {
+    if (getNotifyStatus() && Notification.permission === 'granted') {
+      startNotificationService();
+    }
+  }, []);
 
   React.useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -45,9 +77,7 @@ export default function App() {
 
   return (
     <div className="container">
-      <div className="bg-gradient" />
-
-      <DateNav
+<DateNav
         currentDate={currentDate}
         onDayChange={handleDayChange}
         onDatePick={handleDatePick}

@@ -23,12 +23,7 @@ body {
   justify-content: center;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Subtle background texture */
-  background-image:
-    radial-gradient(ellipse at 20% 10%, rgba(0,122,255,0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 15%, rgba(90,200,250,0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(255,149,0,0.03) 0%, transparent 50%);
-  background-attachment: fixed;
+background-attachment: fixed;
 }
 
 #root {
@@ -43,17 +38,7 @@ body {
   position: relative;
 }
 
-.bg-gradient {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    radial-gradient(ellipse 80% 60% at 30% 10%, rgba(0,122,255,0.06) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(90,200,250,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 20% 70%, rgba(255,149,0,0.03) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 40% at 70% 80%, rgba(88,86,214,0.03) 0%, transparent 50%);
-}
+
 
 /* ── Glass Card ── */
 .glass-card {
@@ -225,6 +210,36 @@ body {
 
 
 
+
+/* ── Notify Test Button ── */
+.notify-test-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.04);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.notify-test-btn:active {
+  transform: scale(0.9);
+  background: rgba(0,0,0,0.08);
+}
+.notify-test-msg {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 2px;
+  margin-bottom: 8px;
+  animation: fadeIn 0.3s ease;
+}
 /* ── Today Status Card ── */
 .status-card {
   padding: 24px 20px 18px;
@@ -336,6 +351,162 @@ body {
   font-size: 0.75rem;
   font-weight: 500;
   transition: color 0.3s ease;
+}
+
+
+/* ── EDIT MODE — Shake Animation ── */
+@keyframes wobble {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-1.2deg); }
+  40% { transform: rotate(1.2deg); }
+  60% { transform: rotate(-0.8deg); }
+  80% { transform: rotate(0.8deg); }
+}
+.tl-card.editing {
+  animation: wobble 0.5s ease-in-out infinite;
+  cursor: grab;
+  transform-origin: center;
+}
+.tl-card.editing.dragging {
+  animation: none;
+  cursor: grabbing;
+  z-index: 100;
+}
+.tl-card.editing.selected {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 1px 2px rgba(0,0,0,0.03),
+    0 4px 12px rgba(0,0,0,0.04),
+    0 12px 32px rgba(0,0,0,0.05) !important;
+}
+.tl-card.dragging {
+  transform: scale(1.05) !important;
+  box-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.04),
+    0 4px 16px rgba(0,0,0,0.1),
+    0 12px 40px rgba(0,0,0,0.12) !important;
+  transition: none !important;
+}
+
+/* Drag handle */
+.tl-edit-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 36px;
+  flex-shrink: 0;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.tl-card.editing .tl-edit-handle {
+  opacity: 1;
+}
+
+/* User modified badge */
+.tl-user-badge {
+  font-size: 0.5625rem;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(0,122,255,0.08);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Timeline wrap editing state */
+.timeline-wrap.editing {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Edit Action Bar ── */
+.edit-bar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+.edit-bar {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 16px 24px;
+  padding: 16px 20px 24px;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,0.82) !important;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  animation: editBarSlideUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes editBarSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.edit-bar-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0,0,0,0.12);
+  margin: 0 auto 14px;
+}
+.edit-bar-title {
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--secondary);
+  margin-bottom: 16px;
+}
+.edit-bar-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+.edit-bar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.04);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  min-width: 72px;
+}
+.edit-bar-btn:active {
+  transform: scale(0.94);
+  background: rgba(0,0,0,0.08);
+}
+.edit-bar-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.edit-bar-btn:disabled:active {
+  transform: none;
+}
+.edit-bar-done {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+.edit-bar-done:active {
+  background: #0066cc !important;
+}
+.edit-bar-hint {
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--tertiary);
+  margin-top: 14px;
+  font-weight: 500;
 }
 
 /* ── Section Title ── */
@@ -504,45 +675,183 @@ body {
 .badge-special { background: rgba(255,59,48,0.1); color: #cc2d28; }
 
 /* ── Done Collapse ── */
-/* ── Done Stack — iOS 卡片叠放 ── */
-.done-stack { position: relative; margin: 6px 0 8px 0; cursor: pointer; }
-.done-stack .stack-bg { position: absolute; background: var(--card); border-radius: 16px; }
-.done-stack .stack-bg:nth-child(1) {
-  inset: -4px -4px 4px 4px; opacity: 0.5;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+/* ── Done Stack — iOS Wallet 卡片叠层 ── */
+.done-stack {
+  position: relative;
+  margin: 8px 0 12px 0;
+  cursor: pointer;
+  min-height: 68px;
 }
-.done-stack .stack-bg:nth-child(2) {
-  inset: -2px -2px 2px 2px; opacity: 0.75;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-}
-.done-stack .stack-card {
+
+/* 3-layer Wallet stack: back layers peek from behind top card */
+.stack-layer {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 100%;
+  min-height: 56px;
+  border-radius: 18px;
   background: rgba(255,255,255,0.72);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-radius: 18px !important;
-  padding: 12px 16px;
   box-shadow:
-    0 0 0 0.5px rgba(0,0,0,0.03),
-    0 1px 2px rgba(0,0,0,0.03),
-    0 4px 10px rgba(0,0,0,0.03),
-    0 8px 20px rgba(0,0,0,0.02),
-    inset 0 0.5px 0 rgba(255,255,255,0.6);
-  z-index: 1; display: flex; align-items: center; gap: 10px; overflow: hidden;
+    0 0 0 0.5px rgba(0,0,0,0.04),
+    0 1px 3px rgba(0,0,0,0.04);
+  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
 }
+
+.stack-layer:nth-child(1) {
+  bottom: -4px;
+  z-index: 0;
+  opacity: 0.35;
+  transform: scale(0.94);
+}
+
+.stack-layer:nth-child(2) {
+  bottom: -2px;
+  z-index: 1;
+  opacity: 0.6;
+  transform: scale(0.97);
+}
+
+.expanded .stack-layer:nth-child(1) {
+  opacity: 0.15;
+  transform: scale(0.94) translateY(-4px);
+}
+
+.expanded .stack-layer:nth-child(2) {
+  opacity: 0.3;
+  transform: scale(0.97) translateY(-2px);
+}
+
+/* Front card — the visible tap target */
+.done-stack .stack-card {
+  position: relative;
+  z-index: 2;
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border-radius: 18px !important;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  min-height: 56px;
+  box-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.04),
+    0 1px 2px rgba(0,0,0,0.04),
+    0 4px 12px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.04),
+    inset 0 0.5px 0 rgba(255,255,255,0.8);
+  transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 .done-stack .stack-card::before {
-  content: ""; position: absolute; inset: 0; border-radius: 18px; pointer-events: none;
-  background: linear-gradient(155deg, rgba(255,255,255,0.3) 0%, transparent 55%);
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  background: linear-gradient(155deg, rgba(255,255,255,0.35) 0%, transparent 55%);
+  z-index: 0;
 }
-.done-stack .stack-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--done); flex-shrink: 0; box-shadow: 0 0 4px rgba(52,199,89,0.3); }
-.done-stack .stack-summary { font-size: 0.75rem; color: var(--secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.done-stack .stack-count { font-size: 0.6875rem; color: var(--secondary); font-weight: 600; }
-.done-stack .stack-chevron { font-size: 0.625rem; color: #c7c7cc; transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); display: flex; }
-.done-stack .stack-chevron.open { transform: rotate(180deg); }
-.done-stack .stack-detail { display: none; padding: 8px 0 0 18px; }
-.done-stack.expanded .stack-detail { display: block; }
-.done-stack .stack-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.75rem; color: var(--secondary); }
-.done-stack .stack-item-icon { width: 22px; text-align: center; }
-.stack-item-time { margin-left: auto; color: #c7c7cc; font-weight: 500; }
+
+.done-stack .stack-card > * { position: relative; z-index: 1; }
+
+.done-stack .stack-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--done);
+  flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(52,199,89,0.3);
+}
+
+.done-stack .stack-summary {
+  font-size: 0.75rem;
+  color: var(--secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.done-stack .stack-count {
+  font-size: 0.6875rem;
+  color: var(--secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.done-stack .stack-chevron {
+  font-size: 0.625rem;
+  color: var(--tertiary);
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.done-stack .stack-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Expanded detail panel */
+.done-stack .stack-detail {
+  display: none;
+  padding: 14px 18px 6px;
+  margin-top: 0;
+  position: relative;
+  z-index: 2;
+  animation: stackExpand 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.expanded .stack-detail {
+  display: block;
+}
+
+@keyframes stackExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.done-stack .stack-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.8125rem;
+  color: var(--secondary);
+  border-bottom: 0.5px solid var(--separator);
+}
+
+.done-stack .stack-item:last-child {
+  border-bottom: none;
+}
+
+.done-stack .stack-item-icon {
+  width: 24px;
+  text-align: center;
+  font-size: 0.9375rem;
+}
+
+.stack-item-time {
+  margin-left: auto;
+  color: var(--tertiary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
 
 
 /* ── Footer ── */
@@ -734,9 +1043,6 @@ body {
   }
   body {
     background: #1c1c1e;
-    background-image:
-      radial-gradient(ellipse at 20% 10%, rgba(0,122,255,0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 10%, rgba(90,200,250,0.04) 0%, transparent 50%);
   }
   .tl-dot {
     border-color: #1c1c1e;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getNotifyStatus, toggleNotifications, scheduleAllNotifications, loadNotified } from '../data/scheduleStore';
+import { getNotifyStatus, toggleNotifications } from '../data/scheduleStore';
 
 export default function NotifyToggle({ onStatusChange }) {
   const [enabled, setEnabled] = React.useState(getNotifyStatus());
