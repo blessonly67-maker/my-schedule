@@ -176,45 +176,43 @@ export default function Timeline({ schedule, now, viewingToday, isPastDay, curre
 
   function onPointerMove(e) {
     if (dragIdx === null || !dragState.current) return;
-    var offset = e.clientY - dragState.current.startY;
-    // Calculate new position
-    var items = dragState.current.itemHeights;
-    var totalOffset = 0;
-    var newIdx = dragIdx;
-    for (var i = 0; i < items.length; i++) {
-      if (i === dragIdx) continue;
-      var adjustedIdx = i > dragIdx ? i - 1 : i;
-      if (offset > totalOffset + items[i] / 2 && adjustedIdx >= newIdx) {
-        newIdx = i;
-      } else if (offset < -(totalOffset + items[i] / 2) && adjustedIdx <= newIdx) {
-        newIdx = i;
-      }
-      totalOffset += items[i];
+    // Get all pending card positions
+    var container = document.querySelector('.timeline-wrap');
+    if (!container) return;
+    var cards = container.querySelectorAll('.tl-item:not(.tl-done)');
+    var mouseY = e.clientY;
+    var newIdx = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var rect = cards[i].getBoundingClientRect();
+      var midY = rect.top + rect.height / 2;
+      if (mouseY > midY) newIdx = i + 1;
     }
+    if (newIdx > cards.length - 1) newIdx = cards.length - 1;
     if (newIdx !== dragOverIdx) setDragOverIdx(newIdx);
     e.preventDefault();
   }
 
   function onPointerUp() {
     if (dragIdx !== null && dragOverIdx !== null && dragIdx !== dragOverIdx) {
-      // Reorder
+      // Reorder pending items
       var newItems = [].concat(items);
-      var filtered = newItems.filter(function(_, i) { return !isItemDone(items[i], nowMin, viewingToday, isPastDay); });
-      var [moved] = filtered.splice(dragIdx, 1);
-      filtered.splice(dragOverIdx, 0, moved);
-      // Merge back with done items
-      var result = [];
-      var fIdx = 0;
+      // Get pending item indices in the full items array
+      var pendIndices = [];
       for (var i = 0; i < newItems.length; i++) {
-        if (isItemDone(items[i], nowMin, viewingToday, isPastDay)) {
-          result.push(newItems[i]);
-        } else {
-          result.push(filtered[fIdx]);
-          fIdx++;
-        }
+        if (!isItemDone(newItems[i], nowMin, viewingToday, isPastDay)) pendIndices.push(i);
       }
-      recalcTimes(result.filter(function(item) { return !item.isSpecial; }));
-      setItems(result);
+      // Move the item within pending list
+      var movedItem = newItems[pendIndices[dragIdx]];
+      // Remove from current position
+      var actualFrom = pendIndices[dragIdx];
+      newItems.splice(actualFrom, 1);
+      // Adjust target index after removal
+      var actualTo = pendIndices[dragOverIdx];
+      if (actualTo > actualFrom) actualTo--;
+      newItems.splice(actualTo, 0, movedItem);
+      // Recalculate times
+      recalcTimes(newItems.filter(function(item) { return !item.isSpecial; }));
+      setItems(newItems);
     }
     setDragIdx(null);
     setDragOverIdx(null);
@@ -251,6 +249,8 @@ export default function Timeline({ schedule, now, viewingToday, isPastDay, curre
     });
     setItems(newItems);
     setSelectedIdx(null);
+    // Exit edit mode so user can see the new card
+    setTimeout(function() { exitEdit(); }, 300);
   }
 
   var lastEnd = schedule.filter(function(i) { return !i.isSpecial; }).length > 0
