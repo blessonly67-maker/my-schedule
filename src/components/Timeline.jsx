@@ -57,7 +57,7 @@ function TimelineCard({ item, status, isEditing, isSelected, isDragging, onSelec
       className={'tl-item' + (isDragging ? ' dragging' : '') + (filterDone ? ' tl-done' : '')}
       style={dimStyle}
       onClick={function(e) { if (isEditing) { e.stopPropagation(); onSelect(); } }}
-      {...(isEditing && !filterDone ? dragListeners || {} : {})}
+      {...dragListeners}
     >
       <div className={'tl-dot ' + dotClass} />
       <GlassCard className={'tl-card ' + iconBg + '-card' + (isEditing && !filterDone ? ' editing' : '') + (isDragging ? ' dragging' : '') + (isSelected ? ' selected' : '')}>
@@ -127,32 +127,27 @@ export default function Timeline({ schedule, now, viewingToday, isPastDay, curre
   }
 
   function handleCardPointerDown(index) {
-    // Long press detection
-    var startTime = Date.now();
     var moved = false;
+    var timerId = setTimeout(function() {
+      if (!moved && !editMode) {
+        enterEdit();
+        setSelectedIdx(index);
+      }
+    }, 500);
     function onMove() { moved = true; }
     function onUp() {
-      if (!moved && Date.now() - startTime < 500 && editMode && !isItemDone(items[index], nowMin, viewingToday, isPastDay)) {
+      if (!moved && editMode && !isItemDone(items[index], nowMin, viewingToday, isPastDay)) {
         setSelectedIdx(index === selectedIdx ? null : index);
       }
+      clearTimeout(timerId);
       cleanup();
     }
     function cleanup() {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
     }
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-
-    // Long press timer
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    longPressTimer.current = setTimeout(function() {
-      if (!moved && !editMode) {
-        enterEdit();
-        setSelectedIdx(index);
-      }
-      longPressTimer.current = null;
-    }, 500);
+    document.addEventListener('pointermove', onMove, { once: true });
+    document.addEventListener('pointerup', onUp, { once: true });
   }
 
   // Drag & Drop via pointer events
@@ -173,10 +168,9 @@ export default function Timeline({ schedule, now, viewingToday, isPastDay, curre
   }
 
   function onPointerDown(index, e) {
+    handleCardPointerDown(index);
     if (editMode) {
       startDrag(index, e);
-    } else {
-      handleCardPointerDown(index);
     }
   }
 
